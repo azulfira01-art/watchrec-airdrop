@@ -1,3 +1,59 @@
+// --- SUPABASE VERİTABANI BAĞLANTISI ---
+const SUPABASE_URL = "https://mwyywojglxrpnqqscumi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_L25Sbpm9k65CZFT_a9PdOQ_mcED2ENY"; // Supabase'den aldığın Publishable (anon) key
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+// Telegram Kullanıcı Bilgilerini Alma
+const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+const telegramId = tgUser?.id || Math.floor(Math.random() * 1000000);
+const username = tgUser?.username ? `@${tgUser.username}` : (tgUser?.first_name || "Oyuncu");
+
+// Veritabanına Skor Kaydetme / Güncelleme
+async function saveScoreToDatabase(newScore) {
+  if (!supabaseClient) return;
+  try {
+    await supabaseClient
+      .from('players')
+      .upsert({
+        telegram_id: telegramId,
+        username: username,
+        first_name: tgUser?.first_name || "Oyuncu",
+        wrgp_score: newScore,
+        updated_at: new Date()
+      }, { onConflict: 'telegram_id' });
+    saveScoreToDatabase(wrgp);
+    fetchLeaderboard();
+  } catch (err) {
+    console.error("Veritabanı güncelleme hatası:", err);
+  }
+}
+
+// Canlı Liderlik Tablosunu Veritabanından Çekme
+async function fetchLeaderboard() {
+  if (!supabaseClient) return;
+  const leaderContainer = document.querySelector('.leaderboard-list') || document.getElementById('leaderboard-list');
+  if (!leaderContainer) return;
+
+  try {
+    const { data: players, error } = await supabaseClient
+      .from('players')
+      .select('username, wrgp_score')
+      .order('wrgp_score', { ascending: false })
+      .limit(10);
+
+    if (error || !players) return;
+
+    leaderContainer.innerHTML = '';
+    players.forEach((player, index) => {
+      const item = document.createElement('div');
+      item.className = 'leader-item';
+      item.innerHTML = `<span>${index + 1}. ${player.username || 'Gizli Oyuncu'}</span><b>${player.wrgp_score} WRGP</b>`;
+      leaderContainer.appendChild(item);
+    });
+  } catch (err) {
+    console.error("Liderlik tablosu yüklenemedi:", err);
+  }
+}
 /* WatchRec Game Center – uygulama mantığı */
 const BOT = 'WatchRecGameBot';
 const ADSGRAM_BLOCK_ID = 'BURAYA_ADSGRAM_BLOCK_ID';   // adsgram.ai panelinden alacağın blok ID
