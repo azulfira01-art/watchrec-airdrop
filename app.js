@@ -22,7 +22,8 @@ function haptic(t) {
 const $ = s => document.querySelector(s);
 const tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
 const USER_ID = tgUser ? tgUser.id : 'demo';
-const NAME = tgUser ? (tgUser.first_name || tgUser.username || 'Oyuncu') : 'Sen';
+const TG_NAME = tgUser ? (tgUser.first_name || tgUser.username || '') : '';
+const getName = () => TG_NAME || tl('you_name');
 const KEY = 'wrgp_state_' + USER_ID;
 
 /* ---------- Durum (localStorage) ---------- */
@@ -51,7 +52,7 @@ function render() {
   $('#adBtn').disabled = full;
   $('#adWrgpBtn').disabled = !full;
   const left = LIFE_REGEN_MS - (Date.now() - S.lastRegen);
-  $('#lifeTimer').textContent = S.lives >= MAX_LIVES ? 'Canların dolu ✅' : `Sonraki can: ${Math.max(0, Math.floor(left / 60000))} dk ${Math.max(0, Math.floor(left / 1000) % 60)} sn`;
+  $('#lifeTimer').textContent = S.lives >= MAX_LIVES ? tl('life_full') : tl('life_next', { m: Math.max(0, Math.floor(left / 60000)), s: Math.max(0, Math.floor(left / 1000) % 60) });
   renderDaily();
 }
 setInterval(render, 1000);
@@ -77,16 +78,16 @@ function dailyState() {
 function renderDaily() {
   const st = dailyState(), box = $('#streak');
   const doneCount = st.can ? st.next : (S.streak % 7 || 7);
-  box.innerHTML = DAILY.map((v, i) => `<div class="day ${i < doneCount ? 'done' : (st.can && i === st.next ? 'now' : '')}">G${i + 1}<b>+${v}</b></div>`).join('');
+  box.innerHTML = DAILY.map((v, i) => `<div class="day ${i < doneCount ? 'done' : (st.can && i === st.next ? 'now' : '')}">${tl('day', { n: i + 1 })}<b>+${v}</b></div>`).join('');
   const b = $('#claimBtn');
   b.disabled = !st.can;
-  b.textContent = st.can ? `Ödülü Al (+${DAILY[st.next]} WRGP)` : 'Yarın tekrar gel ⏳';
+  b.textContent = st.can ? tl('claim', { n: DAILY[st.next] }) : tl('come_back');
 }
 $('#claimBtn').onclick = () => {
   const st = dailyState(); if (!st.can) return;
   S.streak = st.next + 1; S.lastClaim = Date.now(); S.wrgp = clampW(S.wrgp + DAILY[st.next]); save();
   haptic('light'); render();
-  modal(`<h2>🎁 Günlük Ödül</h2><div class="reward">+${DAILY[st.next]} WRGP</div><p>${S.streak}. gün serisi!</p><button class="btn primary" onclick="closeModal()">Harika</button>`);
+  modal(`<h2>${tl('daily_modal')}</h2><div class="reward">+${DAILY[st.next]} WRGP</div><p>${tl('streak_msg', { n: S.streak })}</p><button class="btn primary" onclick="closeModal()">${tl('great')}</button>`);
 };
 
 /* ---------- Davet ---------- */
@@ -96,10 +97,10 @@ $('#copyBtn').onclick = async () => {
   try { await navigator.clipboard.writeText(refLink); } catch (_) {
     const r = document.createRange(); r.selectNode($('#refLink')); getSelection().removeAllRanges(); getSelection().addRange(r); try { document.execCommand('copy'); } catch (_) {}
   }
-  toast('Link kopyalandı ✅');
+  toast(tl('copied'));
 };
 $('#shareBtn').onclick = () => {
-  const url = 'https://t.me/share/url?url=' + encodeURIComponent(refLink) + '&text=' + encodeURIComponent('WatchRec oyunlarını oyna, WRGP kazan! 🎮');
+  const url = 'https://t.me/share/url?url=' + encodeURIComponent(refLink) + '&text=' + encodeURIComponent(tl('share_text'));
   if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank');
 };
 /* Yeni kullanıcı bir davet linkiyle geldiyse: SADECE BİLDİRİM. +50 ödülü sunucu tarafında verilmelidir. */
@@ -111,10 +112,10 @@ $('#shareBtn').onclick = () => {
 /* ---------- Liderlik ---------- */
 function renderBoard() {
   const bots = [['CryptoKral', 5230], ['AlpTekin', 3810], ['Selin_07', 2975], ['NeonWolf', 2140], ['BerkTR', 1620], ['Zeynep', 1180], ['GamerX', 790], ['Mert34', 455]];
-  const list = bots.concat([[NAME, S.wrgp, true]]).sort((a, b) => b[1] - a[1]);
+  const list = bots.concat([[getName(), S.wrgp, true]]).sort((a, b) => b[1] - a[1]);
   const medal = ['🥇', '🥈', '🥉'];
-  $('#boardList').innerHTML = list.map((p, i) => `<div class="lb ${p[2] ? 'me' : ''}"><span class="rk">${medal[i] || (i + 1)}</span><span class="nm">${esc(p[0])}${p[2] ? ' (sen)' : ''}</span><span class="sc">${fmt(p[1])}</span></div>`).join('')
-    + '<p class="muted" style="margin-top:10px">Not: Diğer oyuncular örnek verisidir. Gerçek sıralama için sunucu (veritabanı) gerekir.</p>';
+  $('#boardList').innerHTML = list.map((p, i) => `<div class="lb ${p[2] ? 'me' : ''}"><span class="rk">${medal[i] || (i + 1)}</span><span class="nm">${esc(p[0])}${p[2] && TG_NAME ? ' ' + tl('you') : ''}</span><span class="sc">${fmt(p[1])}</span></div>`).join('')
+    + '<p class="muted" style="margin-top:10px">' + tl('board_note') + '</p>';
 }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -134,19 +135,19 @@ async function watchAd(onDone) {
     await ctl.show();               // reklam sonuna kadar izlenmezse hata fırlatır
     onDone();
   } catch (e) {
-    toast(e && e.message === 'no-ads' ? 'Reklam henüz ayarlanmadı (Block ID gerekli)' : 'Reklam tamamlanmadı, ödül verilmedi');
+    toast(e && e.message === 'no-ads' ? tl('ad_none') : tl('ad_fail'));
   }
   adBusy = false;
 }
 /* Buton 1: can 5'ten azsa aktif → +1 can */
 $('#adBtn').onclick = () => {
   if (S.lives >= MAX_LIVES) return;
-  watchAd(() => { S.lives = Math.min(MAX_LIVES, S.lives + 1); save(); render(); toast('+1 ❤️ kazandın!'); });
+  watchAd(() => { S.lives = Math.min(MAX_LIVES, S.lives + 1); save(); render(); toast(tl('got_life')); });
 };
 /* Buton 2: yalnızca can 5/5 iken aktif → +9 WRGP */
 $('#adWrgpBtn').onclick = () => {
   if (S.lives < MAX_LIVES) return;
-  watchAd(() => { S.wrgp = clampW(S.wrgp + AD_WRGP); save(); render(); toast('+' + AD_WRGP + ' WRGP kazandın! 🪙'); });
+  watchAd(() => { S.wrgp = clampW(S.wrgp + AD_WRGP); save(); render(); toast(tl('got_wrgp', { n: AD_WRGP })); });
 };
 
 /* ---------- Oyun yöneticisi ---------- */
@@ -159,8 +160,8 @@ const ui = {
     if (r.score > S.best[r.kind]) S.best[r.kind] = r.score;
     save(); render();
     modal(`<h2>${r.title}</h2><p>${r.lines.join('<br>')}</p><div class="reward">+${r.reward} WRGP</div>
-      <button class="btn primary" onclick="closeModal();startGame('${r.kind}')" ${S.lives <= 0 ? 'disabled' : ''}>Tekrar Oyna (1 ❤️)</button>
-      <button class="btn" onclick="closeModal();quitGame()">Menüye Dön</button>`);
+      <button class="btn primary" onclick="closeModal();startGame('${r.kind}')" ${S.lives <= 0 ? 'disabled' : ''}>${tl('again')}</button>
+      <button class="btn" onclick="closeModal();quitGame()">${tl('to_menu')}</button>`);
   }
 };
 function fitCanvas() {
@@ -171,7 +172,7 @@ function fitCanvas() {
 }
 window.startGame = function (kind) {
   regen();
-  if (S.lives <= 0) { toast('Canın bitti! Reklam izle veya bekle.'); return; }
+  if (S.lives <= 0) { toast(tl('no_lives')); return; }
   quitGame(true);
   S.lives--; S.lastRegen = S.lives === MAX_LIVES - 1 ? Date.now() : S.lastRegen; save(); render();
   $('#game').classList.remove('hidden');
@@ -187,11 +188,24 @@ window.quitGame = function (silent) {
   $('#game').classList.add('hidden');
 };
 $('#gQuit').onclick = () => {
-  modal(`<h2>Çıkılsın mı?</h2><p>Şimdi çıkarsan harcanan can ve ilerleme kaybolur.</p>
-    <button class="btn" onclick="closeModal()">Devam Et</button>
-    <button class="btn" style="border-color:#ff5a7a;color:#ff5a7a" onclick="closeModal();quitGame()">Çık</button>`);
+  modal(`<h2>${tl('quit_title')}</h2><p>${tl('quit_msg')}</p>
+    <button class="btn" onclick="closeModal()">${tl('keep')}</button>
+    <button class="btn" style="border-color:#ff5a7a;color:#ff5a7a" onclick="closeModal();quitGame()">${tl('quit')}</button>`);
 };
 document.querySelectorAll('[data-play]').forEach(b => b.onclick = () => startGame(b.dataset.play));
 window.addEventListener('resize', () => { if (cur) fitCanvas(); });
 
-render();
+/* ---------- Dil seçici ---------- */
+(function () {
+  const sel = $('#langSel');
+  sel.innerHTML = LANGS.map(l => `<option value="${l[0]}">${l[1]}</option>`).join('');
+  sel.value = LANG;
+  sel.onchange = () => {
+    setLang(sel.value);
+    render();
+    if ($('#tab-board').classList.contains('active')) renderBoard();
+    haptic('light');
+  };
+  applyI18n();
+  render();
+})();
