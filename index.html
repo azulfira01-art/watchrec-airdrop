@@ -1,303 +1,107 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WatchRec Airdrop Game</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://adsgram.ai/js/adsgram-ad-sdk.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    body { background-color: #0d1117; color: #ffffff; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-    
-    /* Header */
-    .header { background: #161b22; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; }
-    .badge { background: #1f6feb; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 5px; }
-    .badge-life { background: #da3633; }
-
-    /* Main Container */
-    .main-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
-
-    /* Navigation Bar */
-    .navbar { background: #161b22; border-top: 1px solid #30363d; display: flex; justify-content: space-around; padding: 10px 0; }
-    .nav-item { color: #8b949e; text-align: center; font-size: 11px; cursor: pointer; flex: 1; }
-    .nav-item.active { color: #58a6ff; font-weight: bold; }
-    .nav-item div { font-size: 18px; margin-bottom: 2px; }
-
-    /* Sections */
-    .section { display: none; flex-direction: column; gap: 15px; }
-    .section.active { display: flex; }
-
-    /* Cards */
-    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 16px; text-align: center; }
-    .card-title { font-size: 16px; font-weight: bold; color: #58a6ff; margin-bottom: 6px; }
-    .card-desc { font-size: 12px; color: #8b949e; margin-bottom: 12px; }
-
-    /* Buttons */
-    .btn { background: #238636; color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; width: 100%; transition: 0.2s; }
-    .btn:active { transform: scale(0.98); }
-    .btn-ad { background: #8957e5; }
-    .btn-secondary { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; }
-
-    /* Game Screen overlay */
-    #game-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0d1117; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
-    canvas { background: #161b22; border: 2px solid #30363d; border-radius: 8px; touch-action: none; }
-    
-    /* Streak Grid */
-    .streak-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
-    .streak-day { background: #21262d; border: 1px solid #30363d; border-radius: 8px; padding: 8px; text-align: center; font-size: 12px; }
-    .streak-day.claimed { border-color: #238636; background: #122c18; color: #3fb950; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>WatchRec Game Center</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://sad.adsgram.ai/js/sad.min.js" async></script>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="app">
+  <header class="top">
+    <div class="pill gold">🪙 <b id="bal">0</b> WRGP</div>
+    <div class="pill green">❤️ <b id="lives">5</b>/5</div>
+    <img class="avatar" id="avatar" src="logo.png" alt="WatchRec">
+  </header>
 
-  <!-- Top Bar -->
-  <div class="header">
-    <div class="badge" id="balance-badge">🪙 0 WRGP</div>
-    <div class="badge badge-life" id="lives-badge">❤️ 5/5</div>
-  </div>
-
-  <!-- Main Content -->
-  <div class="main-container">
-
-    <!-- GAMES SECTION -->
-    <div id="sec-games" class="section active">
-      <div class="card">
-        <div class="card-title">🧩 MATCH-3 DÜELLO</div>
-        <div class="card-desc">Aynı renkteki 3 taşı yan yana getir, puan topla!</div>
-        <button class="btn" onclick="startMatch3()">OYUNA BAŞLA (1 CAN)</button>
-      </div>
-
-      <div class="card">
-        <div class="card-title">👾 VOLFIED (ALAN KAPMACA)</div>
-        <div class="card-desc">Çizgi çekerek alanı daralt, canavarlardan kaç!</div>
-        <button class="btn" onclick="startVolfied()">OYUNA BAŞLA (1 CAN)</button>
-      </div>
-
-      <div class="card">
-        <div class="card-title">📺 CAN HAKKI KAZAN</div>
-        <div class="card-desc">Reklam izleyerek anında +1 Can kazan.</div>
-        <button class="btn btn-ad" onclick="watchAd()">REKLAM İZLE (+1 CAN)</button>
-      </div>
-    </div>
-
-    <!-- DAILY STREAK SECTION -->
-    <div id="sec-daily" class="section">
-      <div class="card">
-        <div class="card-title">GÜNLÜK ÖDÜL SERİSİ</div>
-        <div class="card-desc">Her gün düzenli gir, seriyi bozma!</div>
-        <div class="streak-grid" id="streak-container"></div>
-        <button class="btn" style="margin-top:15px;" onclick="claimDailyStreak()">BUGÜNÜN ÖDÜLÜNÜ AL</button>
-      </div>
-    </div>
-
-    <!-- REFERRAL SECTION -->
-    <div id="sec-ref" class="section">
-      <div class="card">
-        <div class="card-title">ARKADAŞLARINI DAVET ET</div>
-        <div class="card-desc">Her davet ettiğin arkadaşın için +50 WRGP kazan!</div>
-        <input type="text" id="ref-link" readonly value="https://t.me/WatchRecGameBot?start=ref123" style="width:100%; padding:10px; background:#0d1117; border:1px solid #30363d; color:#fff; border-radius:6px; margin-bottom:10px; text-align:center;">
-        <button class="btn btn-secondary" onclick="copyRef()">LİNKİ KOPYALA</button>
-      </div>
-    </div>
-
-    <!-- LEADERBOARD SECTION -->
-    <div id="sec-leader" class="section">
-      <div class="card">
-        <div class="card-title">LİDERLİK SIRALAMASI</div>
-        <div style="text-align:left; font-size:13px; display:flex; flex-direction:column; gap:8px; margin-top:10px;">
-          <div style="display:flex; justify-content:space-between; padding:6px; background:#21262d; border-radius:6px;"><span>1. @Alex_TG</span><b>12,450 WRGP</b></div>
-          <div style="display:flex; justify-content:space-between; padding:6px; background:#21262d; border-radius:6px;"><span>2. @CryptoKing</span><b>9,820 WRGP</b></div>
-          <div style="display:flex; justify-content:space-between; padding:6px; background:#21262d; border-radius:6px;"><span>3. @SizinHesabiniz</span><b id="my-rank-wrgp">0 WRGP</b></div>
+  <main>
+    <!-- SEKME 1: OYUNLAR -->
+    <section id="tab-games" class="tab active">
+      <div class="gcard">
+        <div class="cover c1"><span>💎</span><span>🍬</span><span>🔮</span></div>
+        <div class="gbody">
+          <h3>💎 Match-3 Düello</h3>
+          <p>Taşları sürükle, 3 veya daha fazla aynı şekli eşleştir. 60 saniye ve 15 hamlen var, en yüksek skoru yap!</p>
+          <div class="meta">Rekor: <b id="bestM3">0</b> puan · Ödül: en fazla 15 WRGP</div>
+          <button class="btn primary" data-play="m3">OYNA · 1 ❤️</button>
         </div>
       </div>
+      <div class="gcard">
+        <div class="cover c2"><span>👾</span><span>📐</span><span>⚡</span></div>
+        <div class="gbody">
+          <h3>📐 Volfied (Çizmeci)</h3>
+          <p>10 uzay bölümü, her bölümde yaratıklar ve bir canavar. Çizgi çekip alanı kapat; küçük alanda sıkışan yaratık ölür. 60 saniyede haritanın %70'ini kapat!</p>
+          <div class="meta">Rekor: <b id="bestVF">0</b> puan · Ödül: bölüm başı 2 WRGP, 10 bölüm bitince +10</div>
+          <button class="btn primary" data-play="vf">OYNA · 1 ❤️</button>
+        </div>
+      </div>
+      <div class="card" id="adBox">
+        <p id="lifeTimer" class="muted"></p>
+        <button class="btn gold" id="adBtn">📺 Reklam İzle (+1 Can)</button>
+        <button class="btn gold" id="adWrgpBtn">🪙 Canın Full! Reklam İzle (+9 WRGP)</button>
+      </div>
+    </section>
+
+    <!-- SEKME 2: GÜNLÜK ÖDÜL -->
+    <section id="tab-daily" class="tab">
+      <div class="card">
+        <h2>🎁 Günlük Ödül Serisi</h2>
+        <p class="muted">Her gün gir, serini bozma. Bir gün atlarsan seri 1. güne döner.</p>
+        <div class="streak" id="streak"></div>
+        <button class="btn primary" id="claimBtn">Ödülü Al</button>
+      </div>
+    </section>
+
+    <!-- SEKME 3: DAVET -->
+    <section id="tab-invite" class="tab">
+      <div class="card">
+        <h2>👥 Davet Et ve Kazan</h2>
+        <p class="muted">Davet ettiğin her arkadaş için <b class="goldtxt">+50 WRGP</b>.</p>
+        <div class="linkbox" id="refLink"></div>
+        <div class="row">
+          <button class="btn primary" id="copyBtn">📋 Kopyala</button>
+          <button class="btn" id="shareBtn">📤 Paylaş</button>
+        </div>
+        <p class="muted" style="margin-top:12px">Davet ettiklerin: <b id="invCount">0</b></p>
+      </div>
+    </section>
+
+    <!-- SEKME 4: SIRALAMA -->
+    <section id="tab-board" class="tab">
+      <div class="card">
+        <h2>🏆 Liderlik Sıralaması</h2>
+        <div id="boardList"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="nav">
+    <button class="active" data-tab="games"><i>🎮</i>Oyunlar</button>
+    <button data-tab="daily"><i>🎁</i>Günlük</button>
+    <button data-tab="invite"><i>👥</i>Davet</button>
+    <button data-tab="board"><i>🏆</i>Sıralama</button>
+  </nav>
+
+  <!-- OYUN EKRANI -->
+  <div id="game" class="overlay hidden">
+    <div class="gbar">
+      <button id="gQuit">✕</button>
+      <div id="gTitle"></div>
+      <div id="gInfo"></div>
     </div>
-
+    <div class="gstage" id="gstage"><canvas id="cv"></canvas></div>
+    <div id="gHint" class="muted"></div>
   </div>
 
-  <!-- Bottom Nav -->
-  <div class="navbar">
-    <div class="nav-item active" onclick="switchTab('sec-games', this)"><div>🎮</div>Oyunlar</div>
-    <div class="nav-item" onclick="switchTab('sec-daily', this)"><div>📅</div>Günlük Ödül</div>
-    <div class="nav-item" onclick="switchTab('sec-ref', this)"><div>👥</div>Davet Et</div>
-    <div class="nav-item" onclick="switchTab('sec-leader', this)"><div>🏆</div>Liderler</div>
-  </div>
+  <div id="modal" class="modal hidden"><div class="box" id="modalBox"></div></div>
+  <div id="toast"></div>
+</div>
 
-  <!-- Fullscreen Game Canvas Overlay -->
-  <div id="game-overlay">
-    <div style="margin-bottom:10px; display:flex; justify-content:space-between; width:300px; font-weight:bold;">
-      <span id="game-title">Oyun</span>
-      <span id="game-score">Skor: 0</span>
-    </div>
-    <canvas id="gameCanvas" width="300" height="400"></canvas>
-    <button class="btn btn-secondary" style="width:300px; margin-top:15px;" onclick="closeGame()">OYUNDAN ÇIK</button>
-  </div>
-
-  <script>
-    const tg = window.Telegram.WebApp;
-    if(tg) tg.expand();
-
-    let wrgp = parseInt(localStorage.getItem('wrgp') || '100');
-    let lives = parseInt(localStorage.getItem('lives') || '5');
-    let streak = parseInt(localStorage.getItem('streak') || '0');
-
-    function updateUI() {
-      document.getElementById('balance-badge').innerText = '🪙 ' + wrgp + ' WRGP';
-      document.getElementById('lives-badge').innerText = '❤️ ' + lives + '/5';
-      document.getElementById('my-rank-wrgp').innerText = wrgp + ' WRGP';
-      renderStreak();
-    }
-
-    function switchTab(tabId, el) {
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
-      el.classList.add('active');
-    }
-
-    function renderStreak() {
-      const container = document.getElementById('streak-container');
-      container.innerHTML = '';
-      for(let i=1; i<=7; i++) {
-        const div = document.createElement('div');
-        div.className = 'streak-day ' + (i <= streak ? 'claimed' : '');
-        div.innerHTML = `<b>${i}. Gün</b><br>+${i*10}`;
-        container.appendChild(div);
-      }
-    }
-
-    function claimDailyStreak() {
-      if(streak >= 7) streak = 0;
-      streak++;
-      let bonus = streak * 10;
-      wrgp += bonus;
-      localStorage.setItem('streak', streak);
-      localStorage.setItem('wrgp', wrgp);
-      updateUI();
-      alert(`${streak}. Gün Ödülü alındı: +${bonus} WRGP!`);
-    }
-
-    function watchAd() {
-      if(lives >= 5) { alert("Can hakkınız zaten dolu!"); return; }
-      lives++;
-      localStorage.setItem('lives', lives);
-      updateUI();
-      alert("Reklam izlendi! +1 Can eklendi.");
-    }
-
-    function copyRef() {
-      navigator.clipboard.writeText(document.getElementById('ref-link').value);
-      alert("Referans linki kopyalandı!");
-    }
-
-    // --- GAME ENGINE (Match-3 & Volfied) ---
-    let canvas = document.getElementById('gameCanvas');
-    let ctx = canvas.getContext('2d');
-    let gameLoop;
-    let score = 0;
-
-    function consumeLife() {
-      if(lives <= 0) {
-        alert("Canınız bitti! Reklam izleyerek can yükleyebilirsiniz.");
-        return false;
-      }
-      lives--;
-      localStorage.setItem('lives', lives);
-      updateUI();
-      return true;
-    }
-
-    function startMatch3() {
-      if(!consumeLife()) return;
-      document.getElementById('game-overlay').style.display = 'flex';
-      document.getElementById('game-title').innerText = 'Match-3';
-      score = 0;
-      
-      // Basit Tuğla Eşleştirme Çizim Mekaniği
-      let grid = [];
-      const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f'];
-      for(let r=0; r<6; r++) {
-        grid[r] = [];
-        for(let c=0; c<5; c++) {
-          grid[r][c] = colors[Math.floor(Math.random()*colors.length)];
-        }
-      }
-
-      function drawMatch3() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for(let r=0; r<6; r++) {
-          for(let c=0; c<5; c++) {
-            ctx.fillStyle = grid[r][c];
-            ctx.fillRect(c*58 + 6, r*58 + 6, 50, 50);
-          }
-        }
-        document.getElementById('game-score').innerText = 'Skor: ' + score;
-      }
-
-      canvas.onclick = function(e) {
-        score += 10;
-        wrgp += 2;
-        localStorage.setItem('wrgp', wrgp);
-        updateUI();
-        drawMatch3();
-      };
-
-      drawMatch3();
-    }
-
-    function startVolfied() {
-      if(!consumeLife()) return;
-      document.getElementById('game-overlay').style.display = 'flex';
-      document.getElementById('game-title').innerText = 'Volfied';
-      score = 0;
-
-      let player = { x: 150, y: 380, radius: 8 };
-      let enemy = { x: 150, y: 150, dx: 3, dy: 2, radius: 12 };
-
-      function updateVolfied() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Düşman Hareketi
-        enemy.x += enemy.dx;
-        enemy.y += enemy.dy;
-        if(enemy.x < 10 || enemy.x > 290) enemy.dx *= -1;
-        if(enemy.y < 10 || enemy.y > 390) enemy.dy *= -1;
-
-        // Düşmanı Çiz
-        ctx.fillStyle = '#e74c3c';
-        ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI*2);
-        ctx.fill();
-
-        // Oyuncuyu Çiz
-        ctx.fillStyle = '#2ecc71';
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
-        ctx.fill();
-
-        document.getElementById('game-score').innerText = 'Skor: ' + score;
-        gameLoop = requestAnimationFrame(updateVolfied);
-      }
-
-      canvas.ontouchmove = function(e) {
-        let rect = canvas.getBoundingClientRect();
-        player.x = e.touches[0].clientX - rect.left;
-        player.y = e.touches[0].clientY - rect.top;
-        score += 1;
-      };
-
-      updateVolfied();
-    }
-
-    function closeGame() {
-      cancelAnimationFrame(gameLoop);
-      canvas.onclick = null;
-      canvas.ontouchmove = null;
-      document.getElementById('game-overlay').style.display = 'none';
-      updateUI();
-    }
-
-    updateUI();
-  </script>
+<script src="match3.js"></script>
+<script src="volfied.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

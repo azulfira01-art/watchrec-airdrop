@@ -1,0 +1,73 @@
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:'Segoe UI',system-ui,Tahoma,sans-serif}
+html,body{height:100%;background:#04060d;color:#fff;overflow:hidden;user-select:none;-webkit-user-select:none}
+body{display:flex;justify-content:center}
+.hidden{display:none!important}
+#app{width:100%;max-width:440px;height:100%;display:flex;flex-direction:column;position:relative;overflow:hidden;
+  background:radial-gradient(circle at 50% -10%,#10234a,#080c16 60%);border-left:1px solid #0a3a52;border-right:1px solid #0a3a52}
+.top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(0,210,255,.2)}
+.pill{padding:6px 12px;border-radius:20px;border:1px solid;font-size:14px;background:rgba(255,255,255,.04)}
+.gold{color:#ffd700;border-color:#ffd700;box-shadow:0 0 10px rgba(255,215,0,.35)}
+.green{color:#00e676;border-color:#00e676;box-shadow:0 0 10px rgba(0,230,118,.3)}
+.goldtxt{color:#ffd700}
+.avatar{width:40px;height:40px;border-radius:50%;border:2px solid #00d2ff;box-shadow:0 0 14px #00d2ff;object-fit:cover;background:#04060d;display:block}
+main{flex:1;overflow-y:auto;padding:14px}
+.tab{display:none}.tab.active{display:block}
+.card{background:rgba(16,26,48,.85);border:1px solid #1e3a63;border-radius:14px;padding:14px;margin-bottom:12px;text-align:center}
+.card h2{font-size:17px;color:#00d2ff;margin-bottom:8px;text-shadow:0 0 8px rgba(0,210,255,.6)}
+.muted{color:#8ea6c8;font-size:12px;line-height:1.5}
+.btn{width:100%;padding:11px;border:1px solid #00d2ff;border-radius:10px;background:rgba(0,210,255,.1);color:#00d2ff;font-weight:700;font-size:14px;cursor:pointer;transition:.15s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(90deg,#0088ff,#00d2ff);color:#fff;border:none;box-shadow:0 0 14px rgba(0,210,255,.5)}
+.btn.gold{border-color:#ffd700;color:#ffd700;background:rgba(255,215,0,.1);margin-top:8px}
+.btn:disabled{opacity:.4;filter:grayscale(.6);box-shadow:none}
+.row{display:flex;gap:8px;margin-top:10px}
+.gcard{border:1px solid #00d2ff;border-radius:14px;overflow:hidden;margin-bottom:12px;background:rgba(12,22,40,.9);box-shadow:0 0 16px rgba(0,210,255,.15)}
+.cover{height:92px;display:flex;align-items:center;justify-content:space-around;font-size:38px}
+.cover span{filter:drop-shadow(0 0 8px currentColor);animation:fl 2.4s ease-in-out infinite}
+.cover span:nth-child(2){animation-delay:.4s}.cover span:nth-child(3){animation-delay:.8s}
+@keyframes fl{50%{transform:translateY(-6px) scale(1.08)}}
+.c1{background:linear-gradient(135deg,#3b0a6b,#0a2f7a)}
+.c2{background:linear-gradient(135deg,#052a4a,#0a6b5a)}
+.gbody{padding:12px 14px 14px}
+.gbody h3{color:#00d2ff;font-size:16px;margin-bottom:6px}
+.gbody p{font-size:12px;color:#9bb3d6;line-height:1.45;margin-bottom:8px}
+.meta{font-size:11px;color:#6c8db5;margin-bottom:10px}.meta b{color:#ffd700}
+.streak{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:14px 0}
+.day{background:#101726;border:1px solid #1a2a47;border-radius:8px;padding:8px 0;font-size:10px;color:#9aa}
+.day b{display:block;font-size:13px;margin-top:3px}
+.day.done{border-color:#00e676;color:#00e676;background:rgba(0,230,118,.1)}
+.day.now{border-color:#ffd700;color:#ffd700;background:rgba(255,215,0,.15);box-shadow:0 0 10px rgba(255,215,0,.4);animation:pl 1.2s infinite}
+@keyframes pl{50%{box-shadow:0 0 18px rgba(255,215,0,.8)}}
+.linkbox{margin-top:12px;padding:10px;border:1px dashed #00d2ff;border-radius:10px;font-size:12px;word-break:break-all;color:#bfe9ff;user-select:text;-webkit-user-select:text}
+.lb{display:flex;align-items:center;gap:10px;padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;font-size:14px}
+.lb .rk{width:28px;text-align:center}.lb .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lb .sc{color:#ffd700;font-weight:700}
+.lb.me{background:rgba(0,210,255,.12);border-radius:8px;border-bottom-color:transparent}
+.nav{display:flex;border-top:1px solid rgba(0,210,255,.2);background:#070b16;padding-bottom:env(safe-area-inset-bottom)}
+.nav button{flex:1;background:none;border:none;color:#6c8db5;font-size:11px;padding:8px 0;cursor:pointer}
+.nav button i{display:block;font-style:normal;font-size:20px}
+.nav button.active{color:#00d2ff;text-shadow:0 0 8px #00d2ff}
+.overlay{position:absolute;inset:0;z-index:20;background:#060913;display:flex;flex-direction:column}
+.gbar{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(0,210,255,.2)}
+.gbar button{width:34px;height:34px;border-radius:50%;border:1px solid #ff5a7a;background:none;color:#ff5a7a;font-size:16px;cursor:pointer}
+#gTitle{flex:1;font-weight:700;color:#00d2ff}
+#gInfo{font-size:13px;color:#cfe;text-align:right}#gInfo b{color:#ffd700}
+.gstage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:8px}
+#cv{touch-action:none;border:2px solid #00d2ff;border-radius:12px;box-shadow:0 0 20px rgba(0,210,255,.4);background:#070b18}
+#gHint{text-align:center;padding:6px 12px 12px}
+.modal{position:absolute;inset:0;z-index:30;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px}
+.box{width:100%;background:#0b1224;border:2px solid #00d2ff;border-radius:18px;padding:22px;text-align:center;box-shadow:0 0 30px rgba(0,210,255,.4);animation:pop .3s}
+@keyframes pop{from{transform:scale(.8);opacity:0}}
+.box h2{color:#00d2ff;margin-bottom:10px}.box p{color:#9bb3d6;font-size:14px;line-height:1.6}
+.reward{font-size:34px;font-weight:800;color:#ffd700;text-shadow:0 0 14px #ffd700;margin:14px 0}
+.box .btn{margin-top:8px}
+#toast{position:absolute;left:50%;bottom:80px;transform:translateX(-50%) translateY(20px);background:#12203a;border:1px solid #00d2ff;color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:40;max-width:90%;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%)}
+
+#gInfo{white-space:nowrap}
+#adBox .btn:disabled{opacity:.35}
+
+/* Üst bar: sol WRGP, orta can, sağ logo */
+.top{gap:8px}
+.top .pill{white-space:nowrap;padding:6px 10px;font-size:13px}
+.top .gold{min-width:0}
+.top .avatar{flex:0 0 auto}
