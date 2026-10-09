@@ -136,7 +136,7 @@ const Match3 = (() => {
       return null;
     }
     async function reshuffle() {
-      floats.push({ x: W / 2, y: W / 2, txt: tl('shuffling'), life: 1.6, size: 26 });
+      floats.push({ x: W / 2, y: W / 2, txt: 'Karıştırılıyor!', life: 1.6, size: 26 });
       let ok = false;
       while (!ok) {
         const ts = grid.flat().map(g => g.t);
@@ -153,7 +153,7 @@ const Match3 = (() => {
         parts.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, life: 1, col: i % 3 ? col : '#ffffff', sz: 2 + Math.random() * 4 });
       }
     }
-    const hud = () => ui.hud(tl('score') + ` <b>${score}</b>`);
+    const hud = () => ui.hud(`Skor <b>${score}</b>`);
 
     async function resolve() {
       let combo = 0, m;
@@ -165,7 +165,7 @@ const Match3 = (() => {
         m.forEach(g => { g.dying = true; burst(g); sx += g.x; sy += g.y; });
         const mx = sx / m.size + CS / 2, my = sy / m.size + CS / 2;
         rings.push({ x: mx, y: my, r: 8, life: 1, col: GEMS[[...m][0].t].light });
-        floats.push({ x: mx, y: my, txt: '+' + pts + (combo > 1 ? '  ' + tl('combo', { n: combo }) : ''), life: 1, size: Math.min(36, 22 + combo * 3) });
+        floats.push({ x: mx, y: my, txt: '+' + pts + (combo > 1 ? '  x' + combo + ' KOMBO!' : ''), life: 1, size: Math.min(36, 22 + combo * 3) });
         shake = Math.min(14, shake + 2 + combo * 2);
         haptic('light'); hud();
         await sleep(260); if (!alive) return;
@@ -208,9 +208,9 @@ const Match3 = (() => {
       const used = MOVES - moves;
       ui.end({
         kind: 'm3', score, reward, win: reward > 0,
-        title: why === 'time' ? tl('time_up') : tl('moves_out'),
-        lines: [tl('m3_l1', { s: score }), tl('m3_l2', { u: used, m: MOVES }),
-                tl('m3_l3', { r: reward, p: PTS_PER_WRGP, x: MAX_REWARD })]
+        title: why === 'time' ? '⏱ Süre Doldu!' : 'Hamlelerin Bitti!',
+        lines: ['Skorun: <b>' + score + '</b>', 'Kullanılan hamle: ' + used + '/' + MOVES,
+                'Ödül: ' + reward + ' WRGP (her ' + PTS_PER_WRGP + ' puan = 1 WRGP, en fazla ' + MAX_REWARD + ')']
       });
     }
 
@@ -224,7 +224,7 @@ const Match3 = (() => {
         const sec = Math.ceil(timeLeft / 1000);
         if (sec !== lastSec) { lastSec = sec; if (sec <= 5 && sec > 0) haptic('medium'); }
       }
-      if (timeLeft <= 0 && !timeUp) { timeUp = true; floats.push({ x: W / 2, y: W / 2, txt: tl('time_up_big'), life: 1.6, size: 34 }); }
+      if (timeLeft <= 0 && !timeUp) { timeUp = true; floats.push({ x: W / 2, y: W / 2, txt: 'SÜRE DOLDU!', life: 1.6, size: 34 }); }
       if (timeUp && !busy) { finish('time'); return; }
       if (!busy && !hint && now - lastAct > 5000) hint = findMove();
     }
@@ -269,9 +269,9 @@ const Match3 = (() => {
       const pulse = low && !over ? .6 + .4 * Math.sin(performance.now() / 120) : 1;
       ctx.textBaseline = 'alphabetic';
       ctx.font = '600 11px Segoe UI, sans-serif'; ctx.fillStyle = '#7fa6d6';
-      ctx.textAlign = 'left'; ctx.fillText(tl('score_u'), 26, 26);
-      ctx.textAlign = 'center'; ctx.fillText(tl('moves_u'), W / 2, 26);
-      ctx.textAlign = 'right'; ctx.fillText(tl('time_u'), W - 26, 26);
+      ctx.textAlign = 'left'; ctx.fillText('SKOR', 26, 26);
+      ctx.textAlign = 'center'; ctx.fillText('HAMLE', W / 2, 26);
+      ctx.textAlign = 'right'; ctx.fillText('SÜRE', W - 26, 26);
       ctx.font = 'bold 24px Segoe UI, sans-serif';
       ctx.textAlign = 'left'; ctx.fillStyle = '#ffd700'; ctx.fillText(Math.round(disp), 26, 50);
       ctx.textAlign = 'center'; ctx.fillStyle = moves <= 3 ? '#ff5a7a' : '#ffffff'; ctx.fillText(moves + ' / ' + MOVES, W / 2, 50);
@@ -322,7 +322,7 @@ const Match3 = (() => {
       if (intro > 0) {
         ctx.fillStyle = 'rgba(4,8,20,.55)'; ctx.fillRect(0, HH, W, W);
         const el = INTRO - intro, step = Math.min(3, Math.floor(el / 600)), p = (el % 600) / 600;
-        const txt = ['3', '2', '1', tl('go')][step], sc = 1.5 - .5 * Math.min(1, p * 2);
+        const txt = ['3', '2', '1', 'BAŞLA!'][step], sc = 1.5 - .5 * Math.min(1, p * 2);
         ctx.save(); ctx.translate(W / 2, HH + W / 2); ctx.scale(sc, sc);
         ctx.font = 'bold 84px Segoe UI, sans-serif'; ctx.shadowColor = '#00d2ff'; ctx.shadowBlur = 24;
         ctx.globalAlpha = 1 - Math.max(0, (p - .75) * 3);
@@ -365,7 +365,7 @@ const Match3 = (() => {
     cv.onpointerup = cv.onpointercancel = () => { drag = null; };
 
     fill(); hud();
-    ui.hint(tl('m3_hint'));
+    ui.hint('Taşa dokun, komşusuna sürükle • 3+ aynı taşı eşleştir • 15 hamle ve 60 saniyen var');
     raf = requestAnimationFrame(loop);
     return { stop() { alive = false; cancelAnimationFrame(raf); cv.onpointerdown = cv.onpointermove = cv.onpointerup = cv.onpointercancel = null; } };
   }
