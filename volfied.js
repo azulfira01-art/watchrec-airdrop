@@ -172,7 +172,7 @@ const Volfied = (() => {
 
     const hud = () => {
       const s = Math.max(0, Math.ceil(timeLeft / 1000));
-      ui.hud('B<b>' + (li + 1) + '</b>/' + NL + ' ⏱<b>' + s + '</b> ❤️<b>' + lives + '</b> <b>' + Math.round(pct * 100) + '%</b>');
+      ui.hud('🚀<b>' + (li + 1) + '</b>/' + NL + ' ⏱<b>' + s + '</b> ❤️<b>' + lives + '</b> <b>' + Math.round(pct * 100) + '%</b>');
     };
     const cellAt = (x, y) => { const cx = Math.floor(x), cy = Math.floor(y); return (cx < 0 || cy < 0 || cx >= GW || cy >= GH) ? 1 : g[cy * GW + cx]; };
     const solid = (x, y) => cellAt(x, y) === 1;
@@ -277,7 +277,7 @@ const Volfied = (() => {
         const e = creatures[k];
         if (cellAt(e.x, e.y) !== 1) continue;
         burst(e.x * CS, e.y * CS, e.boss ? '#ff2040' : COL[e.t], e.boss ? 60 : 24, e.boss ? 5 : 3);
-        floatText(e.x * CS, e.y * CS, e.boss ? 'CANAVAR YOK EDİLDİ!' : 'YOK EDİLDİ', e.boss ? '#ff5a6e' : '#ffffff');
+        floatText(e.x * CS, e.y * CS, e.boss ? tl('boss_killed') : tl('killed'), e.boss ? '#ff5a6e' : '#ffffff');
         shake = Math.max(shake, e.boss ? 24 : 12); hp(e.boss ? 'heavy' : 'medium');
         creatures.splice(k, 1);
       }
@@ -374,10 +374,10 @@ const Volfied = (() => {
       if (!alive || state === 'over') return;
       state = 'over'; dir = null;
       const reward = cleared * 2 + (cleared >= NL ? 10 : Math.floor(pct * 100 / 35));
-      const title = win ? '🏆 Tüm Bölümler Tamam!' : (why === 'time' ? '⏱ Süre Doldu!' : 'Canların Bitti!');
+      const title = win ? tl('vf_win') : (why === 'time' ? tl('time_up') : tl('lives_out'));
       ui.end({ kind: 'vf', score, reward, win, title,
-        lines: ['Tamamlanan bölüm: <b>' + cleared + '/' + NL + '</b>', 'Son alan: <b>%' + Math.round(pct * 100) + '</b>', 'Skor: <b>' + score + '</b>',
-                'Ödül: ' + reward + ' WRGP (bölüm başı 2' + (cleared >= NL ? ' + 10 final bonusu' : '') + ')'] });
+        lines: [tl('vf_l1', { c: cleared, n: NL }), tl('vf_l2', { p: Math.round(pct * 100) }), tl('vf_l3', { s: score }),
+                tl('vf_l4', { r: reward, f: cleared >= NL ? tl('vf_final') : '' })] });
     }
     function step() {
       if (!modalEl.classList.contains('hidden')) return;
@@ -500,14 +500,14 @@ const Volfied = (() => {
         ctx.fillStyle = 'rgba(2,4,14,.62)'; ctx.fillRect(0, H * .3, W, 190);
         ctx.fillStyle = '#fff'; ctx.shadowColor = L.ac; ctx.shadowBlur = 16;
         if (state === 'intro') {
-          ctx.font = 'bold 20px sans-serif'; ctx.fillStyle = L.ac; ctx.fillText('BÖLÜM ' + (li + 1) + ' / ' + NL, W / 2, H * .3 + 42);
-          ctx.font = 'bold 29px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText(L.n, W / 2, H * .3 + 88);
-          ctx.font = '15px sans-serif'; ctx.fillStyle = '#ff6a7e'; ctx.fillText('👹 Canavar: ' + L.boss, W / 2, H * .3 + 128);
-          ctx.fillStyle = '#cfe'; ctx.fillText('60 saniyede %70 alanı kapat', W / 2, H * .3 + 158);
+          ctx.font = 'bold 20px sans-serif'; ctx.fillStyle = L.ac; ctx.fillText(tl('level_of', { a: li + 1, b: NL }), W / 2, H * .3 + 42);
+          ctx.font = 'bold 29px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText(LVN(li)[0], W / 2, H * .3 + 88);
+          ctx.font = '15px sans-serif'; ctx.fillStyle = '#ff6a7e'; ctx.fillText(tl('boss_lbl', { n: LVN(li)[1] }), W / 2, H * .3 + 128);
+          ctx.fillStyle = '#cfe'; ctx.fillText(tl('goal'), W / 2, H * .3 + 158);
         } else {
-          ctx.font = 'bold 30px sans-serif'; ctx.fillStyle = '#00e676'; ctx.fillText('BÖLÜM TAMAM!', W / 2, H * .3 + 62);
-          ctx.font = '16px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('Süre bonusu +' + bonus + ' · +1 ❤️', W / 2, H * .3 + 110);
-          ctx.fillStyle = '#cfe'; ctx.fillText('Sıradaki: ' + LV[li + 1].n, W / 2, H * .3 + 148);
+          ctx.font = 'bold 30px sans-serif'; ctx.fillStyle = '#00e676'; ctx.fillText(tl('level_done'), W / 2, H * .3 + 62);
+          ctx.font = '16px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText(tl('time_bonus', { b: bonus }), W / 2, H * .3 + 110);
+          ctx.fillStyle = '#cfe'; ctx.fillText(tl('next', { n: LVN(li + 1)[0] }), W / 2, H * .3 + 148);
         }
         ctx.shadowBlur = 0;
       }
@@ -538,7 +538,7 @@ const Volfied = (() => {
     window.addEventListener('keydown', keyH);
 
     startLevel(0);
-    ui.hint('Parmağını kaydır (veya ok tuşları) • Kenardan boşluğa çizgi çek • Küçük alanda sıkışan yaratık ölür • Her bölüm 60 sn');
+    ui.hint(tl('vf_hint'));
     raf = requestAnimationFrame(loop);
     return { stop() {
       alive = false; cancelAnimationFrame(raf);

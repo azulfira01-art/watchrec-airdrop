@@ -18,71 +18,72 @@
   </header>
 
   <main>
+    <div class="langbar"><span data-i18n="lang_title"></span><select id="langSel" aria-label="Language"></select></div>
     <!-- SEKME 1: OYUNLAR -->
     <section id="tab-games" class="tab active">
       <div class="gcard">
         <div class="cover c1"><span>💎</span><span>🍬</span><span>🔮</span></div>
         <div class="gbody">
-          <h3>💎 Match-3 Düello</h3>
-          <p>Taşları sürükle, 3 veya daha fazla aynı şekli eşleştir. 60 saniye ve 15 hamlen var, en yüksek skoru yap!</p>
-          <div class="meta">Rekor: <b id="bestM3">0</b> puan · Ödül: en fazla 15 WRGP</div>
-          <button class="btn primary" data-play="m3">OYNA · 1 ❤️</button>
+          <h3 data-i18n="m3_title"></h3>
+          <p data-i18n="m3_desc"></p>
+          <div class="meta" data-i18n-html="m3_meta"></div>
+          <button class="btn primary" data-play="m3" data-i18n="play"></button>
         </div>
       </div>
       <div class="gcard">
         <div class="cover c2"><span>👾</span><span>📐</span><span>⚡</span></div>
         <div class="gbody">
-          <h3>📐 Volfied (Çizmeci)</h3>
-          <p>10 uzay bölümü, her bölümde yaratıklar ve bir canavar. Çizgi çekip alanı kapat; küçük alanda sıkışan yaratık ölür. 60 saniyede haritanın %70'ini kapat!</p>
-          <div class="meta">Rekor: <b id="bestVF">0</b> puan · Ödül: bölüm başı 2 WRGP, 10 bölüm bitince +10</div>
-          <button class="btn primary" data-play="vf">OYNA · 1 ❤️</button>
+          <h3 data-i18n="vf_title"></h3>
+          <p data-i18n="vf_desc"></p>
+          <div class="meta" data-i18n-html="vf_meta"></div>
+          <button class="btn primary" data-play="vf" data-i18n="play"></button>
         </div>
       </div>
       <div class="card" id="adBox">
         <p id="lifeTimer" class="muted"></p>
-        <button class="btn gold" id="adBtn">📺 Reklam İzle (+1 Can)</button>
-        <button class="btn gold" id="adWrgpBtn">🪙 Canın Full! Reklam İzle (+9 WRGP)</button>
+        <button class="btn gold" id="adBtn" data-i18n="ad_life"></button>
+        <button class="btn gold" id="adWrgpBtn" data-i18n="ad_wrgp"></button>
       </div>
     </section>
 
     <!-- SEKME 2: GÜNLÜK ÖDÜL -->
     <section id="tab-daily" class="tab">
       <div class="card">
-        <h2>🎁 Günlük Ödül Serisi</h2>
-        <p class="muted">Her gün gir, serini bozma. Bir gün atlarsan seri 1. güne döner.</p>
+        <h2 data-i18n="daily_title"></h2>
+        <p class="muted" data-i18n="daily_desc"></p>
         <div class="streak" id="streak"></div>
-        <button class="btn primary" id="claimBtn">Ödülü Al</button>
+        <button class="btn primary" id="claimBtn"></button>
       </div>
     </section>
 
     <!-- SEKME 3: DAVET -->
     <section id="tab-invite" class="tab">
       <div class="card">
-        <h2>👥 Davet Et ve Kazan</h2>
-        <p class="muted">Davet ettiğin her arkadaş için <b class="goldtxt">+50 WRGP</b>.</p>
+        <h2 data-i18n="inv_title"></h2>
+        <p class="muted" data-i18n-html="inv_desc"></p>
         <div class="linkbox" id="refLink"></div>
         <div class="row">
-          <button class="btn primary" id="copyBtn">📋 Kopyala</button>
-          <button class="btn" id="shareBtn">📤 Paylaş</button>
+          <button class="btn primary" id="copyBtn" data-i18n="copy"></button>
+          <button class="btn" id="shareBtn" data-i18n="share"></button>
         </div>
-        <p class="muted" style="margin-top:12px">Davet ettiklerin: <b id="invCount">0</b></p>
+        <p class="muted" style="margin-top:12px" data-i18n-html="inv_count"></p>
       </div>
     </section>
 
     <!-- SEKME 4: SIRALAMA -->
     <section id="tab-board" class="tab">
       <div class="card">
-        <h2>🏆 Liderlik Sıralaması</h2>
+        <h2 data-i18n="board_title"></h2>
         <div id="boardList"></div>
       </div>
     </section>
   </main>
 
   <nav class="nav">
-    <button class="active" data-tab="games"><i>🎮</i>Oyunlar</button>
-    <button data-tab="daily"><i>🎁</i>Günlük</button>
-    <button data-tab="invite"><i>👥</i>Davet</button>
-    <button data-tab="board"><i>🏆</i>Sıralama</button>
+    <button class="active" data-tab="games"><i>🎮</i><span data-i18n="nav_games"></span></button>
+    <button data-tab="daily"><i>🎁</i><span data-i18n="nav_daily"></span></button>
+    <button data-tab="invite"><i>👥</i><span data-i18n="nav_invite"></span></button>
+    <button data-tab="board"><i>🏆</i><span data-i18n="nav_board"></span></button>
   </nav>
 
   <!-- OYUN EKRANI -->
@@ -100,6 +101,7 @@
   <div id="toast"></div>
 </div>
 
+<script src="i18n.js"></script>
 <script src="match3.js"></script>
 <script src="volfied.js"></script>
 <script src="app.js"></script>
