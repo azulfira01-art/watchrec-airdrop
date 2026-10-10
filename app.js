@@ -1,6 +1,6 @@
 /* WatchRec Game Center – uygulama mantığı */
 const BOT = 'WatchRecGameBot';
-const ADSGRAM_BLOCK_ID = 'BURAYA_ADSGRAM_BLOCK_ID';   // adsgram.ai panelinden alacağın blok ID
+const ADSGRAM_BLOCK_ID = '53000';                     // AdsGram blok ID
 const MAX_LIVES = 5, LIFE_REGEN_MS = 30 * 60 * 1000;   // 30 dk'da 1 can
 const AD_WRGP = 9;                                    // can fullken reklam ödülü
 const DAILY = [10, 15, 20, 30, 40, 60, 100];
@@ -9,6 +9,13 @@ const MAX_WRGP = 999999999;                           // en fazla bakiye
 // 1234567 -> 1.234.567 (3 basamakta bir nokta)
 const fmt = n => String(Math.max(0, Math.floor(Number(n) || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 const clampW = n => Math.min(MAX_WRGP, Math.max(0, Math.floor(Number(n) || 0)));
+
+
+/* ---------- Supabase (gerçek sıralama) ---------- */
+const SB_URL = 'https://mwyywojglxrpnqqscumi.supabase.co';
+const SB_KEY = 'sb_publishable_L25Sbpm9k65CZFT_a9PdOQ_mcED2ENY';   // publishable key: istemcide durması normaldir
+const SB_TABLE = 'players';
+const SB_HEAD = { apikey: SB_KEY, 'Content-Type': 'application/json' };
 
 const tg = window.Telegram && Telegram.WebApp;
 if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor('#080c16'); tg.setBackgroundColor('#04060d'); } catch (_) {} }
@@ -31,7 +38,27 @@ const def = { wrgp: 100, lives: MAX_LIVES, lastRegen: Date.now(), streak: 0, las
 let S;
 try { S = Object.assign({}, def, JSON.parse(localStorage.getItem(KEY) || '{}')); S.best = Object.assign({}, def.best, S.best); } catch (_) { S = Object.assign({}, def); }
 S.wrgp = clampW(S.wrgp);
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_) {} };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_) {} scheduleSync(); };
+
+
+/* Bakiyeyi Supabase'e gönder (yalnızca Telegram içinde, bakiye değiştiyse) */
+let lastSynced = -1, syncTimer = null, syncing = false;
+function scheduleSync() { if (USER_ID === 'demo') return; clearTimeout(syncTimer); syncTimer = setTimeout(() => syncScore(), 4000); }
+async function syncScore(keep) {
+  if (USER_ID === 'demo' || syncing || S.wrgp === lastSynced) return;
+  syncing = true;
+  const w = S.wrgp;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?on_conflict=tg_id`, {
+      method: 'POST', keepalive: !!keep,
+      headers: Object.assign({ Prefer: 'resolution=merge-duplicates,return=minimal' }, SB_HEAD),
+      body: JSON.stringify({ tg_id: Number(USER_ID), name: String(TG_NAME || 'Player').slice(0, 24), wrgp: w, updated_at: new Date().toISOString() })
+    });
+    if (r.ok) lastSynced = w;
+  } catch (_) {}
+  syncing = false;
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) syncScore(true); });
 
 function regen() {
   if (S.lives >= MAX_LIVES) { S.lastRegen = Date.now(); return; }
@@ -109,13 +136,34 @@ $('#shareBtn').onclick = () => {
   if (sp && sp.startsWith('ref_') && !S.refDone) { S.refDone = true; S.referrer = sp.slice(4); save(); /* TODO: fetch('/api/referral', {initData: tg.initData}) */ }
 })();
 
-/* ---------- Liderlik ---------- */
-function renderBoard() {
-  const bots = [['CryptoKral', 5230], ['AlpTekin', 3810], ['Selin_07', 2975], ['NeonWolf', 2140], ['BerkTR', 1620], ['Zeynep', 1180], ['GamerX', 790], ['Mert34', 455]];
-  const list = bots.concat([[getName(), S.wrgp, true]]).sort((a, b) => b[1] - a[1]);
-  const medal = ['🥇', '🥈', '🥉'];
-  $('#boardList').innerHTML = list.map((p, i) => `<div class="lb ${p[2] ? 'me' : ''}"><span class="rk">${medal[i] || (i + 1)}</span><span class="nm">${esc(p[0])}${p[2] && TG_NAME ? ' ' + tl('you') : ''}</span><span class="sc">${fmt(p[1])}</span></div>`).join('')
-    + '<p class="muted" style="margin-top:10px">' + tl('board_note') + '</p>';
+/* ---------- Liderlik (Supabase) ---------- */
+let boardSeq = 0;
+async function renderBoard() {
+  const el = $('#boardList'), seq = ++boardSeq;
+  el.innerHTML = '<p class="muted">' + tl('board_loading') + '</p>';
+  try {
+    await syncScore();
+    const r = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?select=tg_id,name,wrgp&order=wrgp.desc&limit=50`, { headers: SB_HEAD });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const rows = await r.json();
+    let myRank = 0;
+    const inTop = rows.findIndex(p => String(p.tg_id) === String(USER_ID));
+    if (USER_ID !== 'demo' && inTop < 0) {
+      try {
+        const c = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?select=tg_id&wrgp=gt.${S.wrgp}`, { headers: Object.assign({ Prefer: 'count=exact', Range: '0-0' }, SB_HEAD) });
+        const m = /\/(\d+)$/.exec(c.headers.get('Content-Range') || '');
+        if (m) myRank = Number(m[1]) + 1;
+      } catch (_) {}
+    }
+    if (seq !== boardSeq) return;
+    const medal = ['🥇', '🥈', '🥉'];
+    const row = (rk, name, sc, me) => `<div class="lb ${me ? 'me' : ''}"><span class="rk">${rk}</span><span class="nm">${esc(name)}${me ? ' ' + tl('you') : ''}</span><span class="sc">${fmt(sc)}</span></div>`;
+    let html = rows.length ? rows.map((p, i) => row(medal[i] || (i + 1), p.name || '—', p.wrgp, String(p.tg_id) === String(USER_ID))).join('') : '<p class="muted">' + tl('board_empty') + '</p>';
+    if (myRank) html += '<div class="muted" style="text-align:center">…</div>' + row(myRank, getName(), S.wrgp, true);
+    el.innerHTML = html + '<p class="muted" style="margin-top:10px">' + tl('board_note') + '</p>';
+  } catch (_) {
+    if (seq === boardSeq) el.innerHTML = '<p class="muted">' + tl('board_error') + '</p>';
+  }
 }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -208,4 +256,5 @@ window.addEventListener('resize', () => { if (cur) fitCanvas(); });
   };
   applyI18n();
   render();
+  scheduleSync();
 })();
