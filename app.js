@@ -51,20 +51,32 @@ let remoteReady = USER_ID === 'demo', loadTries = 0, loading = false, hasStateCo
 function scheduleSync() { if (USER_ID === 'demo') return; clearTimeout(syncTimer); syncTimer = setTimeout(() => syncScore(), 4000); }
 function saveLocalOnly() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_) {} }
 function mergeRemote(row) {
+  // Kural: bakiye yalnızca artabildiği için iki cihazın EN YÜKSEK değeri alınır; hiçbir cihaz diğerini küçültemez.
   const rs = row.state && typeof row.state === 'object' ? row.state : null;
-  const ru = rs ? (Number(rs.upd) || 0) : 0, lu = Number(S.upd) || 0;
-  if (rs && (ru > lu || (freshDevice && lu === 0))) {              // buluttaki kayıt daha yeni (ya da yeni cihaz)
-    const n = Object.assign({}, def, rs);
-    n.best = Object.assign({}, def.best, rs.best);
-    n.wrgp = clampW(n.wrgp);
-    n.lives = Math.min(MAX_LIVES, Math.max(0, Math.floor(Number(n.lives) || 0)));
-    S = n; saveLocalOnly(); lastSynced = S.upd;
-  } else if (rs && ru === lu) {
-    lastSynced = S.upd;
-  } else if (!rs) {                                                 // eski kayıt: yalnızca bakiye var
+  const L = S;
+  if (!rs) {                                                        // eski kayıt: yalnızca bakiye var
     const rw = clampW(row.wrgp);
-    if (rw > S.wrgp) { S.wrgp = rw; saveLocalOnly(); }
+    if (rw > L.wrgp) { L.wrgp = rw; saveLocalOnly(); }
+    lastSynced = -1;                                                // yerel değer yüksekse buluta da yaz
+    return;
   }
+  const R = Object.assign({}, def, rs);
+  R.best = Object.assign({}, def.best, rs.best);
+  const remoteNewer = (Number(rs.upd) || 0) > (Number(L.upd) || 0);
+  const base = remoteNewer ? R : L;                                 // can/zamanlayıcı: daha yeni kayıttan
+  const M = Object.assign({}, def, base);
+  M.best = { m3: Math.max(L.best.m3 || 0, R.best.m3 || 0), vf: Math.max(L.best.vf || 0, R.best.vf || 0) };
+  M.wrgp = clampW(Math.max(L.wrgp, R.wrgp, Number(row.wrgp) || 0));
+  const lc = Number(L.lastClaim) || 0, rc = Number(R.lastClaim) || 0;   // günlük seri: en son alınan ödüle bak
+  const seriesSrc = rc > lc ? R : (lc > rc ? L : (R.streak > L.streak ? R : L));
+  M.lastClaim = seriesSrc.lastClaim; M.streak = seriesSrc.streak;
+  M.invited = Math.max(L.invited || 0, R.invited || 0);
+  M.refDone = !!(L.refDone || R.refDone);
+  if (!M.referrer) M.referrer = L.referrer || R.referrer;
+  M.lives = Math.min(MAX_LIVES, Math.max(0, Math.floor(Number(M.lives) || 0)));
+  M.upd = Math.max(Number(L.upd) || 0, Number(rs.upd) || 0, 1);
+  S = M; saveLocalOnly();
+  lastSynced = -1;                                                  // birleşmiş durumu bir kez buluta yaz
 }
 async function loadRemote() {
   if (USER_ID === 'demo' || loading) return;
@@ -133,6 +145,7 @@ function render() {
   renderDaily();
 }
 setInterval(render, 1000);
+setInterval(() => { if (!cur && !document.hidden && remoteReady && Date.now() - lastPull > 60000) loadRemote(); }, 30000);   // açık kalan cihazlar da buluttaki en yeni kaydı alsın
 
 /* ---------- Sekmeler ---------- */
 document.querySelectorAll('.nav button').forEach(b => b.onclick = () => {
