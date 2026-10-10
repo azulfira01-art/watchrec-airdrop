@@ -1,6 +1,6 @@
 /* WatchRec Game Center – uygulama mantığı */
 const BOT = 'WatchRecGameBot';
-const ADSGRAM_BLOCK_ID = '53000';                     // AdsGram blok ID
+const ADSGRAM_BLOCK_ID = '53066';                     // AdsGram blok ID
 const MAX_LIVES = 5, LIFE_REGEN_MS = 30 * 60 * 1000;   // 30 dk'da 1 can
 const AD_WRGP = 9;                                    // can fullken reklam ödülü
 const DAILY = [10, 15, 20, 30, 40, 60, 100];
@@ -34,31 +34,81 @@ const getName = () => TG_NAME || tl('you_name');
 const KEY = 'wrgp_state_' + USER_ID;
 
 /* ---------- Durum (localStorage) ---------- */
-const def = { wrgp: 100, lives: MAX_LIVES, lastRegen: Date.now(), streak: 0, lastClaim: 0, best: { m3: 0, vf: 0 }, invited: 0, refDone: false };
+const def = { upd: 0, wrgp: 100, lives: MAX_LIVES, lastRegen: Date.now(), streak: 0, lastClaim: 0, best: { m3: 0, vf: 0 }, invited: 0, refDone: false };
 let S;
+const freshDevice = !localStorage.getItem(KEY);   // bu cihazda daha önce kayıt yok
 try { S = Object.assign({}, def, JSON.parse(localStorage.getItem(KEY) || '{}')); S.best = Object.assign({}, def.best, S.best); } catch (_) { S = Object.assign({}, def); }
 S.wrgp = clampW(S.wrgp);
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_) {} scheduleSync(); };
+if (!freshDevice && !S.upd) { S.upd = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_) {} }   // eski kayıt: ilk kez zaman damgası al
+const save = () => { S.upd = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_) {} scheduleSync(); };
 
 
-/* Bakiyeyi Supabase'e gönder (yalnızca Telegram içinde, bakiye değiştiyse) */
+/* ---------- Bulut kaydı (Supabase): tüm cihazlarda aynı ilerleme ----------
+   Tüm durum (bakiye, can, seri, rekor...) players.state sütununa kaydedilir.
+   Uygulama açılınca önce buluttaki kayıt okunur; daha yeni olan (S.upd) kullanılır. */
 let lastSynced = -1, syncTimer = null, syncing = false;
+let remoteReady = USER_ID === 'demo', loadTries = 0, loading = false, hasStateCol = true, lastPull = 0;
 function scheduleSync() { if (USER_ID === 'demo') return; clearTimeout(syncTimer); syncTimer = setTimeout(() => syncScore(), 4000); }
+function saveLocalOnly() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_) {} }
+function mergeRemote(row) {
+  const rs = row.state && typeof row.state === 'object' ? row.state : null;
+  const ru = rs ? (Number(rs.upd) || 0) : 0, lu = Number(S.upd) || 0;
+  if (rs && (ru > lu || (freshDevice && lu === 0))) {              // buluttaki kayıt daha yeni (ya da yeni cihaz)
+    const n = Object.assign({}, def, rs);
+    n.best = Object.assign({}, def.best, rs.best);
+    n.wrgp = clampW(n.wrgp);
+    n.lives = Math.min(MAX_LIVES, Math.max(0, Math.floor(Number(n.lives) || 0)));
+    S = n; saveLocalOnly(); lastSynced = S.upd;
+  } else if (rs && ru === lu) {
+    lastSynced = S.upd;
+  } else if (!rs) {                                                 // eski kayıt: yalnızca bakiye var
+    const rw = clampW(row.wrgp);
+    if (rw > S.wrgp) { S.wrgp = rw; saveLocalOnly(); }
+  }
+}
+async function loadRemote() {
+  if (USER_ID === 'demo' || loading) return;
+  loading = true;
+  try {
+    let r = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?select=wrgp,state&tg_id=eq.${Number(USER_ID)}`, { headers: SB_HEAD });
+    if (r.status === 400 && hasStateCol) {                         // state sütunu henüz eklenmemiş
+      hasStateCol = false;
+      r = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?select=wrgp&tg_id=eq.${Number(USER_ID)}`, { headers: SB_HEAD });
+    }
+    if (!r.ok) throw new Error('http ' + r.status);
+    const rows = await r.json();
+    if (rows[0]) mergeRemote(rows[0]);
+    remoteReady = true; lastPull = Date.now();
+    render(); scheduleSync();
+  } catch (_) {
+    if (!remoteReady) {
+      if (++loadTries < 8) setTimeout(loadRemote, 3000 * loadTries);
+      else if (!freshDevice) remoteReady = true;      // bağlantı yok: bu cihazda kayıt varsa yine de göndermeyi dene
+    }
+  }
+  loading = false;
+}
 async function syncScore(keep) {
-  if (USER_ID === 'demo' || syncing || S.wrgp === lastSynced) return;
+  if (USER_ID === 'demo' || syncing || !remoteReady || S.upd === lastSynced) return;
   syncing = true;
-  const w = S.wrgp;
+  const snap = S.upd;
+  const body = { tg_id: Number(USER_ID), name: String(TG_NAME || 'Player').slice(0, 24), wrgp: S.wrgp, updated_at: new Date().toISOString() };
+  if (hasStateCol) body.state = JSON.parse(JSON.stringify(S));
   try {
     const r = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?on_conflict=tg_id`, {
       method: 'POST', keepalive: !!keep,
       headers: Object.assign({ Prefer: 'resolution=merge-duplicates,return=minimal' }, SB_HEAD),
-      body: JSON.stringify({ tg_id: Number(USER_ID), name: String(TG_NAME || 'Player').slice(0, 24), wrgp: w, updated_at: new Date().toISOString() })
+      body: JSON.stringify(body)
     });
-    if (r.ok) lastSynced = w;
+    if (r.ok) lastSynced = snap;
+    else if (r.status === 400 && hasStateCol) { hasStateCol = false; scheduleSync(); }   // state sütunu yok → yalnızca bakiye
   } catch (_) {}
   syncing = false;
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden) syncScore(true); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) syncScore(true);
+  else if (!cur && Date.now() - lastPull > 20000) loadRemote();   // uygulamaya dönünce buluttaki en yeni kaydı al
+});
 
 function regen() {
   if (S.lives >= MAX_LIVES) { S.lastRegen = Date.now(); return; }
@@ -256,5 +306,5 @@ window.addEventListener('resize', () => { if (cur) fitCanvas(); });
   };
   applyI18n();
   render();
-  scheduleSync();
+  loadRemote();
 })();
